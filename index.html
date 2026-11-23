@@ -611,13 +611,23 @@ function recordBox(){
 }
 
 /* ---------------- course player: real Rise SCORM 1.2 export via scorm-again ---------------- */
-const PKG = "courses/sample/scormdriver/indexAPI.html";  // same sample Rise export for every course in this mockup
-const PKG_VER = "8bNGzVaW";  // Rise coursePackageVersion of that export. Resume data saved against any other export is dropped, so Rise never tries to reopen a lesson that no longer exists.
+/* Where each course's Rise SCORM export lives.
+   Default (GitHub demo): the bundled sample export for every course.
+   The WordPress plugin opens the app with ?courses=<base URL>; the app then reads <base>/catalog.json, which the
+   plugin's uploader writes: {"start": {"path": "start", "version": "8bNGzVaW"}, ...}. A course that hasn't been
+   uploaded yet falls back to the sample.
+   "version" is Rise's coursePackageVersion. Resume data saved against any other version is dropped, so Rise never
+   tries to reopen a lesson that no longer exists after a course is re-exported. */
+const SAMPLE_PKG = { url:"courses/sample/scormdriver/indexAPI.html", version:"8bNGzVaW" };
+const COURSE_BASE = (() => { try { const b = new URLSearchParams(location.search).get("courses"); return b && /^\/[^\/]/.test(b) ? b.replace(/\/+$/, "") : ""; } catch(e){ return ""; } })();  // same-site paths only
+let CATALOG = {};
+const pkgFor = id => { const c = CATALOG[id]; return c && c.path ? { url:`${COURSE_BASE}/${encodeURIComponent(c.path)}/scormdriver/indexAPI.html`, version:String(c.version || "") } : SAMPLE_PKG; };
 let PLAYER = null;
 function viewCourse(c){
   if(PLAYER) teardown();
   const saved = S.progress[c.id] || {};
-  const prior = (saved.cmi && saved.cmi.pkg === PKG_VER) ? saved.cmi : {};
+  const P = pkgFor(c.id);
+  const prior = (saved.cmi && saved.cmi.pkg === P.version) ? saved.cmi : {};
   const parts = S.user.name.trim().split(/\s+/);
   const lmsName = parts.length>1 ? `${parts.slice(-1)[0]}, ${parts.slice(0,-1).join(" ")}` : S.user.name;
   const api = new window.Scorm12API({ autocommit:true, autocommitSeconds:10, lmsCommitUrl:false, logLevel:5 });
@@ -633,7 +643,7 @@ function viewCourse(c){
     const r = api.renderCommitCMI(true).cmi || {};
     const status = r.core?.lesson_status || "";
     const rec = S.progress[c.id] || {};
-    rec.cmi = { pkg:PKG_VER, suspend_data:r.suspend_data, lesson_location:r.core?.lesson_location, lesson_status:status };
+    rec.cmi = { pkg:P.version, suspend_data:r.suspend_data, lesson_location:r.core?.lesson_location, lesson_status:status };
     rec.status = status; rec.totalTime = r.core?.total_time || rec.totalTime;
     rec.pct = Math.max(rec.pct||15, 50);
     S.progress[c.id] = rec;
@@ -658,7 +668,7 @@ function viewCourse(c){
       <span class="scorm" id="plog"><i></i>Loading Rise course…</span>
       <button class="btn small gold" data-act="simulate" title="Presenter shortcut: reports a pass to the app, as finishing the course would">Demo: mark complete</button>
     </div>
-    <iframe id="course" title="${esc(c.title)}" src="${PKG}" allow="fullscreen; autoplay"></iframe>
+    <iframe id="course" title="${esc(c.title)}" src="${esc(P.url)}" allow="fullscreen; autoplay"></iframe>
   </div>`;
   /* Rise's launcher (scormdriver/indexAPI.html) starts the course when the number of frames that have reported "loaded"
      equals the number of frames on its page. Hosts that inject their own frame into every page (Netlify's toolbar,
@@ -848,7 +858,11 @@ document.addEventListener("click", e => {
 });
 
 demoControls(false);
-if(!window.Scorm12API){ $("#app").innerHTML = '<p style="padding:40px">The course player did not load. Check your connection and reload.</p>'; } else render();
+if(!window.Scorm12API){ $("#app").innerHTML = '<p style="padding:40px">The course player did not load. Check your connection and reload.</p>'; }
+else if(COURSE_BASE){
+  fetch(COURSE_BASE + "/catalog.json", { cache:"no-store" }).then(r => r.ok ? r.json() : {}).catch(() => ({}))
+    .then(cat => { CATALOG = (cat && typeof cat === "object") ? cat : {}; render(); });
+} else render();
 </script>
 </body>
 </html>
