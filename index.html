@@ -666,6 +666,7 @@ function viewCourse(c){
      "Error initializing communications with LMS" pop-up. So: allow only one start, and if the course hasn't
      started shortly after the launcher loads, start it once, from inside the launcher page. */
   embedTop(true);  // embedded: line the player up just under the host page's sticky header
+  toHost({ type:"player", open:true });  // embedded: host locks page scrolling while a course is open
   const fr = $("#course");
   const guard = () => {  // wrap the launcher's start as soon as its code exists, before any frame reports loaded
     try {
@@ -690,6 +691,7 @@ function viewCourse(c){
   }, { once:true });
 }
 function teardown(){
+  toHost({ type:"player", open:false });
   const fr = $("#course"); try{ if(fr) fr.src = "about:blank"; }catch(e){}
   try{ PLAYER && PLAYER.persist(); }catch(e){}
   PLAYER = null; window.API = undefined;
