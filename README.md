@@ -11,7 +11,7 @@ Articulate Rise courses on a poynter.org page, earn a badge per course and PD ho
 | Folder | What it is | Status |
 | --- | --- | --- |
 | `index.html`, `brand/`, `lib/`, `courses/sample/` | The course app. One static HTML page, no build step. GitHub Pages serves it as the demo. | Working demo |
-| `plugin/` | WordPress plugin v0.3.0: shortcode, page script, admin uploader for each course's Rise zip. Installable zip in `plugin/dist/`. | Tested on WordPress 6.5 (local) |
+| `plugin/` | WordPress plugin v0.3.0: shortcode, page script, admin uploader for each course's Rise zip. Build the installable zip with `plugin/build.sh`. | Tested on WordPress 6.5 (local) |
 | `embed/` | The no-plugin route: paste-in code for a Custom HTML block. This is what runs on the WordPress dev site now. | Live on the dev site |
 | `database/` | Supabase design: tables, access rules, sign-in function, staff report | Schema tested; sign-in function written, not yet deployed |
 | `rise-build/` | Spec and scripts that build course lessons in Articulate Rise | Used for the Science pilot |
@@ -38,10 +38,10 @@ Opening `index.html` straight from disk won't play courses, because browsers blo
 ## Plugin
 
 ```sh
-cd plugin && ./build.sh     # writes plugin/dist/mediawise-course-app-0.3.0.zip
+bash plugin/build.sh     # writes plugin/dist/mediawise-course-app-0.3.0.zip
 ```
 
-Install the zip in WP admin > Plugins > Add New > Upload, activate it, put `[mediawise_course]` on a full-width page,
+The zip (about 6 MB, mostly the sample course) isn't committed. Install it in WP admin > Plugins > Add New > Upload, activate it, put `[mediawise_course]` on a full-width page,
 and upload each Rise SCORM 1.2 zip under **MediaWise Courses**. Courses go in `wp-content/uploads/mediawise-courses/`
 and survive plugin updates. See `plugin/mediawise-course-app/includes/` for the code.
 
